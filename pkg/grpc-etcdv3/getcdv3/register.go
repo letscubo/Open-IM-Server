@@ -4,7 +4,7 @@ import (
 	"Open_IM/pkg/common/log"
 	"context"
 	"fmt"
-	"go.etcd.io/etcd/clientv3"
+	clientv3 "go.etcd.io/etcd/client/v3"
 	"net"
 	"strconv"
 	"strings"
@@ -38,6 +38,7 @@ func RegisterEtcd4Unique(schema, etcdAddr, myHost string, myPort int, serviceNam
 
 //etcdAddr separated by commas
 func RegisterEtcd(schema, etcdAddr, myHost string, myPort int, serviceName string, ttl int) error {
+	ttl = ttl * 3
 	cli, err := clientv3.New(clientv3.Config{
 		Endpoints: strings.Split(etcdAddr, ","), DialTimeout: 5 * time.Second})
 
@@ -72,11 +73,31 @@ func RegisterEtcd(schema, etcdAddr, myHost string, myPort int, serviceName strin
 	go func() {
 		for {
 			select {
-			case _, ok := <-kresp:
+			case pv, ok := <-kresp:
 				if ok == true {
-					//log.Debug("", "KeepAlive kresp ok", v, schema, etcdAddr, myHost, myPort, serviceName, ttl)
+					log.Debug("", "KeepAlive kresp ok", pv)
 				} else {
-					//log.Error("", "KeepAlive kresp failed", schema, etcdAddr, myHost, myPort, serviceName, ttl)
+					log.Error("", "KeepAlive kresp failed", pv)
+					t := time.NewTicker(time.Duration(ttl/2) * time.Second)
+					for {
+						select {
+						case <-t.C:
+						}
+						ctx, _ := context.WithCancel(context.Background())
+						resp, err := cli.Grant(ctx, int64(ttl))
+						if err != nil {
+							log.Error("", "Grant failed ", err.Error())
+							continue
+						}
+
+						if _, err := cli.Put(ctx, serviceKey, serviceValue, clientv3.WithLease(resp.ID)); err != nil {
+							log.Error("", "etcd Put failed ", err.Error(), serviceKey, serviceValue, resp.ID)
+							continue
+						} else {
+							log.Info("", "etcd Put ok", serviceKey, serviceValue, resp.ID)
+						}
+
+					}
 				}
 			}
 		}

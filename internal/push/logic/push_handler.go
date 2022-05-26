@@ -26,15 +26,15 @@ type PushConsumerHandler struct {
 func (ms *PushConsumerHandler) Init() {
 	ms.msgHandle = make(map[string]fcb)
 	ms.msgHandle[config.Config.Kafka.Ms2pschat.Topic] = ms.handleMs2PsChat
-	ms.pushConsumerGroup = kfk.NewMConsumerGroup(&kfk.MConsumerGroupConfig{KafkaVersion: sarama.V0_10_2_0,
+	ms.pushConsumerGroup = kfk.NewMConsumerGroup(&kfk.MConsumerGroupConfig{KafkaVersion: sarama.V2_0_0_0,
 		OffsetsInitial: sarama.OffsetNewest, IsReturnErr: false}, []string{config.Config.Kafka.Ms2pschat.Topic}, config.Config.Kafka.Ms2pschat.Addr,
 		config.Config.Kafka.ConsumerGroupID.MsgToPush)
 }
 func (ms *PushConsumerHandler) handleMs2PsChat(msg []byte) {
-	log.InfoByKv("msg come from kafka  And push!!!", "", "msg", string(msg))
+	log.NewDebug("", "msg come from kafka  And push!!!", "msg", string(msg))
 	msgFromMQ := pbChat.PushMsgDataToMQ{}
 	if err := proto.Unmarshal(msg, &msgFromMQ); err != nil {
-		log.ErrorByKv("push Unmarshal msg err", "", "msg", string(msg), "err", err.Error())
+		log.Error("", "push Unmarshal msg err", "msg", string(msg), "err", err.Error())
 		return
 	}
 	//Call push module to send message to the user
@@ -45,7 +45,7 @@ func (PushConsumerHandler) Cleanup(_ sarama.ConsumerGroupSession) error { return
 func (ms *PushConsumerHandler) ConsumeClaim(sess sarama.ConsumerGroupSession,
 	claim sarama.ConsumerGroupClaim) error {
 	for msg := range claim.Messages() {
-		log.InfoByKv("kafka get info to mysql", "", "msgTopic", msg.Topic, "msgPartition", msg.Partition, "msg", string(msg.Value))
+		log.NewDebug("", "kafka get info to mysql", "msgTopic", msg.Topic, "msgPartition", msg.Partition, "msg", string(msg.Value))
 		ms.msgHandle[msg.Topic](msg.Value)
 	}
 	return nil

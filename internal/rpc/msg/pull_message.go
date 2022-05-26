@@ -11,7 +11,7 @@ import (
 )
 
 func (rpc *rpcChat) GetMaxAndMinSeq(_ context.Context, in *pbMsg.GetMaxAndMinSeqReq) (*pbMsg.GetMaxAndMinSeqResp, error) {
-	log.InfoByKv("rpc getMaxAndMinSeq is arriving", in.OperationID, in.String())
+	log.NewInfo(in.OperationID, "rpc getMaxAndMinSeq is arriving", in.String())
 	//seq, err := model.GetBiggestSeqFromReceive(in.UserID)
 	maxSeq, err1 := commonDB.DB.GetUserMaxSeq(in.UserID)
 	minSeq, err2 := commonDB.DB.GetUserMinSeq(in.UserID)
@@ -40,18 +40,28 @@ func (rpc *rpcChat) PullMessageBySeqList(_ context.Context, in *open_im_sdk.Pull
 	log.NewInfo(in.OperationID, "rpc PullMessageBySeqList is arriving", in.String())
 	resp := new(open_im_sdk.PullMessageBySeqListResp)
 	//msgList, err := commonDB.DB.GetMsgBySeqList(in.UserID, in.SeqList, in.OperationID)
-	msgList, err := commonDB.DB.GetMsgBySeqListMongo2(in.UserID, in.SeqList, in.OperationID)
+	redisMsgList, failedSeqList, err := commonDB.DB.GetMessageListBySeq(in.UserID, in.SeqList, in.OperationID)
 	if err != nil {
-		log.ErrorByKv("PullMessageBySeqList data error", in.OperationID, in.String())
-		resp.ErrCode = 201
-		resp.ErrMsg = err.Error()
-		return resp, nil
+		if err != redis.ErrNil {
+			log.Error(in.OperationID, "get message from redis exception", err.Error(), failedSeqList)
+		} else {
+			log.Debug(in.OperationID, "get message from redis is nil", failedSeqList)
+		}
+		msgList, err1 := commonDB.DB.GetMsgBySeqListMongo2(in.UserID, failedSeqList, in.OperationID)
+		if err1 != nil {
+			log.Error(in.OperationID, "PullMessageBySeqList data error", in.String(), err.Error())
+			resp.ErrCode = 201
+			resp.ErrMsg = err.Error()
+			return resp, nil
+		} else {
+			redisMsgList = append(redisMsgList, msgList...)
+			resp.List = redisMsgList
+		}
+	} else {
+		resp.List = redisMsgList
 	}
 	//respSingleMsgFormat = singleMsgHandleByUser(SingleMsgFormat, in.UserID)
 	//respGroupMsgFormat = groupMsgHandleByUser(GroupMsgFormat)
-	resp.ErrCode = 0
-	resp.ErrMsg = ""
-	resp.List = msgList
 	return resp, nil
 
 }

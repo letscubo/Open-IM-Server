@@ -9,7 +9,7 @@ type ErrInfo struct {
 }
 
 var (
-	OK = ErrInfo{0, ""}
+	OK        = ErrInfo{0, ""}
 	ErrServer = ErrInfo{500, "server error"}
 
 	//	ErrMysql             = ErrInfo{100, ""}
@@ -47,11 +47,14 @@ var (
 	ErrTokenMalformed   = ErrInfo{703, TokenMalformedMsg.Error()}
 	ErrTokenNotValidYet = ErrInfo{704, TokenNotValidYetMsg.Error()}
 	ErrTokenUnknown     = ErrInfo{705, TokenUnknownMsg.Error()}
+	ErrTokenKicked      = ErrInfo{706, TokenUserKickedMsg.Error()}
 
-	ErrAccess = ErrInfo{ErrCode: 801, ErrMsg: AccessMsg.Error()}
-	ErrDB     = ErrInfo{ErrCode: 802, ErrMsg: DBMsg.Error()}
-	ErrArgs   = ErrInfo{ErrCode: 8003, ErrMsg: ArgsMsg.Error()}
-	ErrCallback = ErrInfo{ErrCode: 809, ErrMsg: CallBackMsg.Error()}
+	ErrAccess    = ErrInfo{ErrCode: 801, ErrMsg: AccessMsg.Error()}
+	ErrDB        = ErrInfo{ErrCode: 802, ErrMsg: DBMsg.Error()}
+	ErrArgs      = ErrInfo{ErrCode: 803, ErrMsg: ArgsMsg.Error()}
+	ErrStatus    = ErrInfo{ErrCode: 804, ErrMsg: StatusMsg.Error()}
+	ErrCallback  = ErrInfo{ErrCode: 809, ErrMsg: CallBackMsg.Error()}
+	ErrSendLimit = ErrInfo{ErrCode: 810, ErrMsg: "send msg limit, to many request, try again later"}
 )
 
 var (
@@ -61,11 +64,12 @@ var (
 	TokenNotValidYetMsg = errors.New("token not active yet")
 	TokenMalformedMsg   = errors.New("that's not even a token")
 	TokenUnknownMsg     = errors.New("couldn't handle this token")
-
-	AccessMsg = errors.New("no permission")
-	DBMsg     = errors.New("db failed")
-	ArgsMsg   = errors.New("args failed")
-	CallBackMsg = errors.New("callback failed")
+	TokenUserKickedMsg  = errors.New("user has been kicked")
+	AccessMsg           = errors.New("no permission")
+	StatusMsg           = errors.New("status is abnormal")
+	DBMsg               = errors.New("db failed")
+	ArgsMsg             = errors.New("args failed")
+	CallBackMsg         = errors.New("callback failed")
 
 	ThirdPartyMsg = errors.New("third party error")
 )

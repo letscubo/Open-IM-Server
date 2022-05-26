@@ -1,19 +1,34 @@
 package db
 
 import (
+	"Open_IM/pkg/common/config"
 	"Open_IM/pkg/common/constant"
 	log2 "Open_IM/pkg/common/log"
+	pbChat "Open_IM/pkg/proto/chat"
+	pbCommon "Open_IM/pkg/proto/sdk_ws"
+	"Open_IM/pkg/utils"
+	"encoding/json"
+	"errors"
+	"fmt"
 	"github.com/garyburd/redigo/redis"
+	"github.com/golang/protobuf/jsonpb"
+	"strconv"
 )
 
 const (
-	AccountTempCode               = "ACCOUNT_TEMP_CODE"
+	accountTempCode               = "ACCOUNT_TEMP_CODE"
 	resetPwdTempCode              = "RESET_PWD_TEMP_CODE"
 	userIncrSeq                   = "REDIS_USER_INCR_SEQ:" // user incr seq
 	appleDeviceToken              = "DEVICE_TOKEN"
 	userMinSeq                    = "REDIS_USER_MIN_SEQ:"
 	uidPidToken                   = "UID_PID_TOKEN_STATUS:"
 	conversationReceiveMessageOpt = "CON_RECV_MSG_OPT:"
+	getuiToken                    = "GETUI"
+	userInfoCache                 = "USER_INFO_CACHE:"
+	friendRelationCache           = "FRIEND_RELATION_CACHE:"
+	blackListCache                = "BLACK_LIST_CACHE:"
+	groupCache                    = "GROUP_CACHE:"
+	messageCache                  = "MESSAGE_CACHE:"
 )
 
 func (d *DataBases) Exec(cmd string, key interface{}, args ...interface{}) (interface{}, error) {
@@ -36,16 +51,16 @@ func (d *DataBases) Exec(cmd string, key interface{}, args ...interface{}) (inte
 	return con.Do(cmd, params...)
 }
 func (d *DataBases) JudgeAccountEXISTS(account string) (bool, error) {
-	key := AccountTempCode + account
+	key := accountTempCode + account
 	return redis.Bool(d.Exec("EXISTS", key))
 }
 func (d *DataBases) SetAccountCode(account string, code, ttl int) (err error) {
-	key := AccountTempCode + account
+	key := accountTempCode + account
 	_, err = d.Exec("SET", key, code, "ex", ttl)
 	return err
 }
 func (d *DataBases) GetAccountCode(account string) (string, error) {
-	key := AccountTempCode + account
+	key := accountTempCode + account
 	return redis.String(d.Exec("GET", key))
 }
 
@@ -59,6 +74,13 @@ func (d *DataBases) IncrUserSeq(uid string) (uint64, error) {
 func (d *DataBases) GetUserMaxSeq(uid string) (uint64, error) {
 	key := userIncrSeq + uid
 	return redis.Uint64(d.Exec("GET", key))
+}
+
+//set the largest Seq
+func (d *DataBases) SetUserMaxSeq(uid string, maxSeq uint64) error {
+	key := userIncrSeq + uid
+	_, err := d.Exec("SET", key, maxSeq)
+	return err
 }
 
 //Set the user's minimum seq
@@ -111,12 +133,14 @@ func (d *DataBases) DeleteTokenByUidPid(userID string, platformID int32, fields 
 	_, err := d.Exec("HDEL", key, redis.Args{}.Add().AddFlat(fields)...)
 	return err
 }
-func (d *DataBases) SetSingleConversationMsgOpt(userID, conversationID string, opt int) error {
+
+func (d *DataBases) SetSingleConversationRecvMsgOpt(userID, conversationID string, opt int32) error {
 	key := conversationReceiveMessageOpt + userID
 	_, err := d.Exec("HSet", key, conversationID, opt)
 	return err
 }
-func (d *DataBases) GetSingleConversationMsgOpt(userID, conversationID string) (int, error) {
+
+func (d *DataBases) GetSingleConversationRecvMsgOpt(userID, conversationID string) (int, error) {
 	key := conversationReceiveMessageOpt + userID
 	return redis.Int(d.Exec("HGet", key, conversationID))
 }
@@ -141,4 +165,180 @@ func (d *DataBases) GetMultiConversationMsgOpt(userID string, conversationIDs []
 	}
 	return m, nil
 
+}
+
+func (d *DataBases) SetGetuiToken(token string, expireTime int64) error {
+	_, err := d.Exec("SET", getuiToken, token, "ex", expireTime)
+	return err
+}
+
+func (d *DataBases) GetGetuiToken() (string, error) {
+	result, err := redis.String(d.Exec("GET", getuiToken))
+	return result, err
+}
+
+func (d *DataBases) SearchContentType() {
+
+}
+
+func (d *DataBases) SetUserInfoToCache(userID string, m map[string]interface{}) error {
+	_, err := d.Exec("hmset", userInfoCache+userID, redis.Args{}.Add().AddFlat(m)...)
+	return err
+}
+
+func (d *DataBases) GetUserInfoFromCache(userID string) (*pbCommon.UserInfo, error) {
+	result, err := redis.String(d.Exec("hgetall", userInfoCache+userID))
+	log2.NewInfo("", result)
+	if err != nil {
+		return nil, err
+	}
+	userInfo := &pbCommon.UserInfo{}
+	err = json.Unmarshal([]byte(result), userInfo)
+	return userInfo, err
+}
+
+func (d *DataBases) AddFriendToCache(userID string, friendIDList ...string) error {
+	var IDList []interface{}
+	for _, id := range friendIDList {
+		IDList = append(IDList, id)
+	}
+	_, err := d.Exec("SADD", friendRelationCache+userID, IDList...)
+	return err
+}
+
+func (d *DataBases) ReduceFriendToCache(userID string, friendIDList ...string) error {
+	var IDList []interface{}
+	for _, id := range friendIDList {
+		IDList = append(IDList, id)
+	}
+	_, err := d.Exec("SREM", friendRelationCache+userID, IDList...)
+	return err
+}
+
+func (d *DataBases) GetFriendIDListFromCache(userID string) ([]string, error) {
+	result, err := redis.Strings(d.Exec("SMEMBERS", friendRelationCache+userID))
+	return result, err
+}
+
+func (d *DataBases) AddBlackUserToCache(userID string, blackList ...string) error {
+	var IDList []interface{}
+	for _, id := range blackList {
+		IDList = append(IDList, id)
+	}
+	_, err := d.Exec("SADD", blackListCache+userID, IDList...)
+	return err
+}
+
+func (d *DataBases) ReduceBlackUserFromCache(userID string, blackList ...string) error {
+	var IDList []interface{}
+	for _, id := range blackList {
+		IDList = append(IDList, id)
+	}
+	_, err := d.Exec("SREM", blackListCache+userID, IDList...)
+	return err
+}
+
+func (d *DataBases) GetBlackListFromCache(userID string) ([]string, error) {
+	result, err := redis.Strings(d.Exec("SMEMBERS", blackListCache+userID))
+	return result, err
+}
+
+func (d *DataBases) AddGroupMemberToCache(groupID string, userIDList ...string) error {
+	var IDList []interface{}
+	for _, id := range userIDList {
+		IDList = append(IDList, id)
+	}
+	_, err := d.Exec("SADD", groupCache+groupID, IDList...)
+	return err
+}
+
+func (d *DataBases) ReduceGroupMemberFromCache(groupID string, userIDList ...string) error {
+	var IDList []interface{}
+	for _, id := range userIDList {
+		IDList = append(IDList, id)
+	}
+	_, err := d.Exec("SREM", groupCache+groupID, IDList...)
+	return err
+}
+
+func (d *DataBases) GetGroupMemberIDListFromCache(groupID string) ([]string, error) {
+	result, err := redis.Strings(d.Exec("SMEMBERS", groupCache+groupID))
+	return result, err
+}
+func (d *DataBases) GetMessageListBySeq(userID string, seqList []uint32, operationID string) (seqMsg []*pbCommon.MsgData, failedSeqList []uint32, errResult error) {
+	for _, v := range seqList {
+		//MESSAGE_CACHE:169.254.225.224_reliability1653387820_0_1
+		key := messageCache + userID + "_" + strconv.Itoa(int(v))
+
+		result, err := redis.String(d.Exec("GET", key))
+		if err != nil {
+			errResult = err
+			failedSeqList = append(failedSeqList, v)
+			log2.NewWarn(operationID, "redis get message error:", err.Error(), v)
+		} else {
+			msg := pbCommon.MsgData{}
+			err = jsonpb.UnmarshalString(result, &msg)
+			if err != nil {
+				errResult = err
+				failedSeqList = append(failedSeqList, v)
+				log2.NewWarn(operationID, "Unmarshal err", result, err.Error())
+			} else {
+				log2.NewDebug(operationID, "redis get msg is ", msg.String())
+				seqMsg = append(seqMsg, &msg)
+			}
+
+		}
+	}
+	return seqMsg, failedSeqList, errResult
+}
+
+func (d *DataBases) SetMessageToCache(msgList []*pbChat.MsgDataToMQ, uid string, operationID string) error {
+	var failedList []pbChat.MsgDataToMQ
+	for _, msg := range msgList {
+		key := messageCache + uid + "_" + strconv.Itoa(int(msg.MsgData.Seq))
+		s, err := utils.Pb2String(msg.MsgData)
+		if err != nil {
+			log2.NewWarn(operationID, utils.GetSelfFuncName(), "Pb2String failed", msg.MsgData.String(), uid, err.Error())
+			continue
+		}
+		log2.NewDebug(operationID, "convert string is ", s)
+		_, err = d.Exec("SET", key, s, "ex", config.Config.MsgCacheTimeout)
+		if err != nil {
+			log2.NewWarn(operationID, utils.GetSelfFuncName(), "redis failed", "args:", key, *msg, uid, s)
+			failedList = append(failedList, *msg)
+		}
+	}
+	if len(failedList) != 0 {
+		return errors.New(fmt.Sprintf("set msg to cache failed, failed lists: %s", failedList))
+	}
+	return nil
+}
+
+func (d *DataBases) DelMsgFromCache(uid string, seqList []uint32, operationID string) {
+	for _, seq := range seqList {
+		key := messageCache + uid + "_" + strconv.Itoa(int(seq))
+		result, err := redis.String(d.Exec("GET", key))
+		if err != nil {
+			log2.NewWarn(operationID, utils.GetSelfFuncName(), "redis failed", "args:", key)
+			continue
+		}
+		log2.Debug(operationID, utils.GetSelfFuncName(), "del result", result)
+		var msg pbCommon.MsgData
+		err = utils.String2Pb(result, &msg)
+		log2.NewDebug(operationID, utils.GetSelfFuncName(), "msg", msg)
+		if err != nil {
+			log2.NewWarn(operationID, utils.GetSelfFuncName(), "string2Pb failed", msg, err.Error())
+			continue
+		}
+		msg.Status = constant.MsgDeleted
+		s, err := utils.Pb2String(&msg)
+		if err != nil {
+			log2.NewWarn(operationID, utils.GetSelfFuncName(), "Pb2String failed", msg, err.Error())
+			continue
+		}
+		_, err = d.Exec("SET", key, s)
+		if err != nil {
+			log2.NewWarn(operationID, utils.GetSelfFuncName(), "redis failed", "args:", key, msg, s)
+		}
+	}
 }

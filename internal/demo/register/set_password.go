@@ -10,13 +10,13 @@ import (
 	"Open_IM/pkg/common/log"
 	"Open_IM/pkg/utils"
 	"encoding/json"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
 
 type ParamsSetPassword struct {
 	Email            string `json:"email"`
+	Name             string `json:"name"`
 	PhoneNumber      string `json:"phoneNumber"`
 	Password         string `json:"password"`
 	VerificationCode string `json:"verificationCode"`
@@ -38,6 +38,9 @@ func SetPassword(c *gin.Context) {
 	} else {
 		account = params.PhoneNumber
 	}
+	if params.Name == "" {
+		params.Name = account
+	}
 	if params.VerificationCode != config.Config.Demo.SuperCode {
 		accountKey := account + "_" + constant.VerificationCodeForRegisterSuffix
 		v, err := db.DB.GetAccountCode(accountKey)
@@ -49,12 +52,12 @@ func SetPassword(c *gin.Context) {
 			return
 		}
 	}
-	url := fmt.Sprintf("http://%s:10000/auth/user_register", utils.ServerIP)
+	url := config.Config.Demo.ImAPIURL + "/auth/user_register"
 	openIMRegisterReq := api.UserRegisterReq{}
 	openIMRegisterReq.OperationID = params.OperationID
 	openIMRegisterReq.Platform = params.Platform
 	openIMRegisterReq.UserID = account
-	openIMRegisterReq.Nickname = account
+	openIMRegisterReq.Nickname = params.Name
 	openIMRegisterReq.Secret = config.Config.Secret
 	openIMRegisterResp := api.UserRegisterResp{}
 	bMsg, err := http2.Post(url, openIMRegisterReq, 2)
@@ -69,7 +72,7 @@ func SetPassword(c *gin.Context) {
 		if err != nil {
 			log.NewError(params.OperationID, utils.GetSelfFuncName(), err.Error())
 		}
-		c.JSON(http.StatusOK, gin.H{"errCode": constant.RegisterFailed, "errMsg": "register failed: "+openIMRegisterResp.ErrMsg})
+		c.JSON(http.StatusOK, gin.H{"errCode": constant.RegisterFailed, "errMsg": "register failed: " + openIMRegisterResp.ErrMsg})
 		return
 	}
 	log.Info(params.OperationID, "begin store mysql", account, params.Password)
@@ -80,6 +83,8 @@ func SetPassword(c *gin.Context) {
 		return
 	}
 	log.Info(params.OperationID, "end setPassword", account, params.Password)
+	// demo onboarding
+	onboardingProcess(params.OperationID, account, params.Name)
 	c.JSON(http.StatusOK, gin.H{"errCode": constant.NoError, "errMsg": "", "data": openIMRegisterResp.UserToken})
 	return
 }

@@ -20,8 +20,10 @@ const (
 	WSGetNewestSeq     = 1001
 	WSPullMsgBySeqList = 1002
 	WSSendMsg          = 1003
+	WSSendSignalMsg    = 1004
 	WSPushMsg          = 2001
 	WSKickOnlineMsg    = 2002
+	WsLogoutMsg        = 2003
 	WSDataError        = 3001
 
 	///ContentType
@@ -44,8 +46,8 @@ const (
 	GroupMsg       = 201
 
 	//SysRelated
-	NotificationBegin = 1000
-
+	NotificationBegin                     = 1000
+	DeleteMessageNotification             = 1100
 	FriendApplicationApprovedNotification = 1201 //add_friend_response
 	FriendApplicationRejectedNotification = 1202 //add_friend_response
 	FriendApplicationNotification         = 1203 //add_friend
@@ -54,14 +56,13 @@ const (
 	FriendRemarkSetNotification           = 1206 //set_friend_remark?
 	BlackAddedNotification                = 1207 //add_black
 	BlackDeletedNotification              = 1208 //remove_black
-	ConversationOptChangeNotification     = 1300 // change conversation opt
+
+	ConversationOptChangeNotification = 1300 // change conversation opt
 
 	UserNotificationBegin       = 1301
 	UserInfoUpdatedNotification = 1303 //SetSelfInfoTip             = 204
-	ConversationNotification    = 1307
-	ConversationNotNotification = 1308
-	ConversationDefault         = 0
 	UserNotificationEnd         = 1399
+	OANotification              = 1400
 
 	GroupNotificationBegin = 1500
 
@@ -75,7 +76,29 @@ const (
 	MemberKickedNotification             = 1508
 	MemberInvitedNotification            = 1509
 	MemberEnterNotification              = 1510
-	NotificationEnd                      = 2000
+	GroupDismissedNotification           = 1511
+	GroupMemberMutedNotification         = 1512
+	GroupMemberCancelMutedNotification   = 1513
+	GroupMutedNotification               = 1514
+	GroupCancelMutedNotification         = 1515
+	GroupMemberInfoSetNotification       = 1516
+
+	SignalingNotificationBegin = 1600
+	SignalingNotification      = 1601
+	SignalingNotificationEnd   = 1699
+
+	ConversationPrivateChatNotification = 1701
+
+	OrganizationChangedNotification = 1801
+
+	WorkMomentNotificationBegin = 1900
+	WorkMomentNotification      = 1901
+
+	NotificationEnd = 2000
+
+	//status
+	MsgNormal  = 1
+	MsgDeleted = 4
 
 	//MsgFrom
 	UserMsgType = 100
@@ -84,6 +107,8 @@ const (
 	//SessionType
 	SingleChatType = 1
 	GroupChatType  = 2
+
+	NotificationChatType = 4
 	//token
 	NormalToken  = 0
 	InValidToken = 1
@@ -111,17 +136,26 @@ const (
 	ReceiveNotNotifyMessage = 2
 
 	//OptionsKey
-	IsHistory            = "history"
-	IsPersistent         = "persistent"
-	IsOfflinePush        = "offlinePush"
-	IsUnreadCount        = "unreadCount"
-	IsConversationUpdate = "conversationUpdate"
-	IsSenderSync         = "senderSync"
+	IsHistory                  = "history"
+	IsPersistent               = "persistent"
+	IsOfflinePush              = "offlinePush"
+	IsUnreadCount              = "unreadCount"
+	IsConversationUpdate       = "conversationUpdate"
+	IsSenderSync               = "senderSync"
+	IsNotPrivate               = "notPrivate"
+	IsSenderConversationUpdate = "senderConversationUpdate"
+	IsSenderNotificationPush   = "senderNotificationPush"
 
 	//GroupStatus
-	GroupOk             = 0
-	GroupBanChat        = 1
-	GroupDisband        = 2
+	GroupOk              = 0
+	GroupBanChat         = 1
+	GroupStatusDismissed = 2
+	GroupStatusMuted     = 3
+
+	//GroupType
+	NormalGroup     = 0
+	DepartmentGroup = 1
+
 	GroupBaned          = 3
 	GroupBanPrivateChat = 4
 
@@ -139,16 +173,42 @@ const (
 
 	//callbackCommand
 	CallbackBeforeSendSingleMsgCommand = "callbackBeforeSendSingleMsgCommand"
-	CallbackAfterSendSingleMsgCommand = "callbackAfterSendSingleMsgCommand"
-	CallbackBeforeSendGroupMsgCommand = "callbackBeforeSendGroupMsgCommand"
-	CallbackAfterSendGroupMsgCommand = "callbackAfterSendGroupMsgCommand"
-	CallbackWordFilterCommand = "callbackWordFilterCommand"
+	CallbackAfterSendSingleMsgCommand  = "callbackAfterSendSingleMsgCommand"
+	CallbackBeforeSendGroupMsgCommand  = "callbackBeforeSendGroupMsgCommand"
+	CallbackAfterSendGroupMsgCommand   = "callbackAfterSendGroupMsgCommand"
+	CallbackWordFilterCommand          = "callbackWordFilterCommand"
+	CallbackUserOnlineCommand          = "callbackUserOnlineCommand"
+	CallbackUserOfflineCommand         = "callbackUserOfflineCommand"
+	CallbackOfflinePushCommand         = "callbackOfflinePushCommand"
 	//callback actionCode
-	ActionAllow = 0
+	ActionAllow     = 0
 	ActionForbidden = 1
 	//callback callbackHandleCode
 	CallbackHandleSuccess = 0
-	CallbackHandleFailed = 1
+	CallbackHandleFailed  = 1
+
+	// minioUpload
+	OtherType = 1
+	VideoType = 2
+	ImageType = 3
+
+	// workMoment permission
+	WorkMomentPublic            = 0
+	WorkMomentPrivate           = 1
+	WorkMomentPermissionCanSee  = 2
+	WorkMomentPermissionCantSee = 3
+
+	// workMoment sdk notification type
+	WorkMomentCommentNotification = 0
+	WorkMomentLikeNotification    = 1
+	WorkMomentAtUserNotification  = 2
+)
+const (
+	AtAllString = "AtAllTag"
+	AtNormal    = 0
+	AtMe        = 1
+	AtAll       = 2
+	AtAllAtMe   = 3
 )
 
 var ContentType2PushContent = map[int64]string{
@@ -161,6 +221,16 @@ var ContentType2PushContent = map[int64]string{
 	GroupMsg: "你收到一条群聊消息",
 	Common:   "你收到一条新消息",
 }
+
+const (
+	FieldRecvMsgOpt    = 1
+	FieldIsPinned      = 2
+	FieldAttachedInfo  = 3
+	FieldIsPrivateChat = 4
+	FieldGroupAtType   = 5
+	FieldIsNotInGroup  = 6
+	FieldEx            = 7
+)
 
 const (
 	AppOrdinaryUsers = 1
@@ -189,7 +259,7 @@ const (
 const FriendAcceptTip = "You have successfully become friends, so start chatting"
 
 func GroupIsBanChat(status int32) bool {
-	if status != GroupBanChat {
+	if status != GroupStatusMuted {
 		return false
 	}
 	return true
@@ -203,3 +273,7 @@ func GroupIsBanPrivateChat(status int32) bool {
 }
 
 const BigVersion = "v3"
+
+const LogFileName = "OpenIM.log"
+
+const StatisticsTimeInterval = 60

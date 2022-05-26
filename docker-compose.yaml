@@ -32,6 +32,7 @@ services:
 #      - MONGO_INITDB_ROOT_USERNAME=openIM
 #      - MONGO_INITDB_ROOT_PASSWORD=openIM
 
+
       #TZ: Asia/Shanghai
     restart: always
 
@@ -68,12 +69,17 @@ services:
     image: wurstmeister/kafka
     container_name: kafka
     restart: always
+    ports:
+     - 9093:9093
     environment:
       TZ: Asia/Shanghai
       KAFKA_BROKER_ID: 0
       KAFKA_ZOOKEEPER_CONNECT: 127.0.0.1:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://127.0.0.1:9092
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_CREATE_TOPICS: "ws2ms_chat:2:1,ms2ps_chat:2:1"
+      KAFKA_ADVERTISED_LISTENERS: INSIDE://127.0.0.1:9092,OUTSIDE://103.116.45.174:9093
+      KAFKA_LISTENERS: INSIDE://:9092,OUTSIDE://:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT"
+      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
     network_mode: "host"
     depends_on:
       - zookeeper
@@ -93,7 +99,7 @@ services:
     command: /usr/local/bin/etcd --name etcd0 --data-dir /etcd-data --listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://0.0.0.0:2379 --listen-peer-urls http://0.0.0.0:2380 --initial-advertise-peer-urls http://0.0.0.0:2380 --initial-cluster etcd0=http://0.0.0.0:2380 --initial-cluster-token tkn --initial-cluster-state new
 
   open_im_server:
-    image: openim/open_im_server:v2.0.2
+    image: openim/open_im_server:v2.0.10
     container_name: open_im_server
     volumes:
       - ./logs:/Open-IM-Server/logs

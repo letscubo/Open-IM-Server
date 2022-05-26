@@ -28,6 +28,7 @@ func GetGroupById(c *gin.Context) {
 		openIMHttp.RespHttp200(c, constant.ErrArgs, nil)
 		return
 	}
+	log.NewInfo("", utils.GetSelfFuncName(), "req: ", req)
 	reqPb.GroupId = req.GroupId
 	etcdConn := getcdv3.GetConn(config.Config.Etcd.EtcdSchema, strings.Join(config.Config.Etcd.EtcdAddr, ","), config.Config.RpcRegisterName.OpenImGroupName)
 	client := pbGroup.NewGroupClient(etcdConn)
@@ -43,6 +44,8 @@ func GetGroupById(c *gin.Context) {
 	resp.ProfilePhoto = respPb.CMSGroup.GroupInfo.FaceURL
 	resp.GroupMasterName = respPb.CMSGroup.GroupMasterName
 	resp.GroupMasterId = respPb.CMSGroup.GroupMasterId
+	resp.IsBanChat = constant.GroupIsBanChat(respPb.CMSGroup.GroupInfo.Status)
+	log.NewInfo("", utils.GetSelfFuncName(), "req: ", resp)
 	openIMHttp.RespHttp200(c, constant.OK, resp)
 }
 
@@ -57,6 +60,7 @@ func GetGroups(c *gin.Context) {
 		openIMHttp.RespHttp200(c, constant.ErrArgs, nil)
 		return
 	}
+	log.NewInfo("", utils.GetSelfFuncName(), "req: ", req)
 	reqPb.Pagination = &commonPb.RequestPagination{}
 	utils.CopyStructFields(&reqPb.Pagination, req)
 	etcdConn := getcdv3.GetConn(config.Config.Etcd.EtcdSchema, strings.Join(config.Config.Etcd.EtcdAddr, ","), config.Config.RpcRegisterName.OpenImGroupName)
@@ -74,7 +78,7 @@ func GetGroups(c *gin.Context) {
 			GroupMasterName:  v.GroupMasterName,
 			GroupMasterId:    v.GroupMasterId,
 			CreateTime:       (utils.UnixSecondToTime(int64(v.GroupInfo.CreateTime))).String(),
-			IsBanChat:        false,
+			IsBanChat:        constant.GroupIsBanChat(v.GroupInfo.Status),
 			IsBanPrivateChat: false,
 			ProfilePhoto:     v.GroupInfo.FaceURL,
 		})
@@ -82,6 +86,7 @@ func GetGroups(c *gin.Context) {
 	resp.GroupNums = int(respPb.GroupNum)
 	resp.CurrentPage = int(respPb.Pagination.PageNumber)
 	resp.ShowNumber = int(respPb.Pagination.ShowNumber)
+	log.NewInfo("", utils.GetSelfFuncName(), "resp: ", resp)
 	openIMHttp.RespHttp200(c, constant.OK, resp)
 }
 
@@ -96,6 +101,7 @@ func GetGroupByName(c *gin.Context) {
 		openIMHttp.RespHttp200(c, constant.ErrArgs, nil)
 		return
 	}
+	log.NewInfo("", utils.GetSelfFuncName(), "req: ", req)
 	reqPb.GroupName = req.GroupName
 	reqPb.Pagination = &commonPb.RequestPagination{}
 	utils.CopyStructFields(&reqPb.Pagination, req)
@@ -114,7 +120,7 @@ func GetGroupByName(c *gin.Context) {
 			GroupMasterName:  v.GroupMasterName,
 			GroupMasterId:    v.GroupMasterId,
 			CreateTime:       (utils.UnixSecondToTime(int64(v.GroupInfo.CreateTime))).String(),
-			IsBanChat:        false,
+			IsBanChat:        constant.GroupIsBanChat(v.GroupInfo.Status),
 			IsBanPrivateChat: false,
 			ProfilePhoto:     v.GroupInfo.FaceURL,
 		})
@@ -122,13 +128,14 @@ func GetGroupByName(c *gin.Context) {
 	resp.CurrentPage = int(respPb.Pagination.PageNumber)
 	resp.ShowNumber = int(respPb.Pagination.ShowNumber)
 	resp.GroupNums = int(respPb.GroupNums)
+	log.NewInfo("", utils.GetSelfFuncName(), "resp: ", resp)
 	openIMHttp.RespHttp200(c, constant.OK, resp)
 }
 
 func CreateGroup(c *gin.Context) {
 	var (
 		req   cms_api_struct.CreateGroupRequest
-		_  cms_api_struct.CreateGroupResponse
+		_     cms_api_struct.CreateGroupResponse
 		reqPb pbGroup.CreateGroupReq
 	)
 	if err := c.BindJSON(&req); err != nil {
@@ -136,6 +143,7 @@ func CreateGroup(c *gin.Context) {
 		openIMHttp.RespHttp200(c, constant.ErrArgs, nil)
 		return
 	}
+	log.NewInfo("", utils.GetSelfFuncName(), "req: ", req)
 	reqPb.GroupInfo = &commonPb.GroupInfo{}
 	reqPb.GroupInfo.GroupName = req.GroupName
 	reqPb.GroupInfo.CreatorUserID = req.GroupMasterId
@@ -168,6 +176,7 @@ func BanGroupChat(c *gin.Context) {
 		openIMHttp.RespHttp200(c, constant.ErrArgs, nil)
 		return
 	}
+	log.NewInfo("", utils.GetSelfFuncName(), "req: ", req)
 	reqPb.GroupId = req.GroupId
 	reqPb.Status = constant.GroupBanChat
 	etcdConn := getcdv3.GetConn(config.Config.Etcd.EtcdSchema, strings.Join(config.Config.Etcd.EtcdAddr, ","), config.Config.RpcRegisterName.OpenImGroupName)
@@ -192,6 +201,7 @@ func BanPrivateChat(c *gin.Context) {
 		openIMHttp.RespHttp200(c, constant.ErrArgs, nil)
 		return
 	}
+	log.NewInfo("", utils.GetSelfFuncName(), "req: ", req)
 	reqPb.GroupId = req.GroupId
 	reqPb.Status = constant.GroupBanPrivateChat
 	etcdConn := getcdv3.GetConn(config.Config.Etcd.EtcdSchema, strings.Join(config.Config.Etcd.EtcdAddr, ","), config.Config.RpcRegisterName.OpenImGroupName)
@@ -215,6 +225,7 @@ func OpenGroupChat(c *gin.Context) {
 		openIMHttp.RespHttp200(c, constant.ErrArgs, nil)
 		return
 	}
+	log.NewInfo("", utils.GetSelfFuncName(), "req: ", req)
 	reqPb.GroupId = req.GroupId
 	reqPb.Status = constant.GroupOk
 	etcdConn := getcdv3.GetConn(config.Config.Etcd.EtcdSchema, strings.Join(config.Config.Etcd.EtcdAddr, ","), config.Config.RpcRegisterName.OpenImGroupName)
@@ -238,6 +249,7 @@ func OpenPrivateChat(c *gin.Context) {
 		openIMHttp.RespHttp200(c, constant.ErrArgs, nil)
 		return
 	}
+	log.NewInfo("", utils.GetSelfFuncName(), "req: ", req)
 	reqPb.GroupId = req.GroupId
 	reqPb.Status = constant.GroupOk
 	etcdConn := getcdv3.GetConn(config.Config.Etcd.EtcdSchema, strings.Join(config.Config.Etcd.EtcdAddr, ","), config.Config.RpcRegisterName.OpenImGroupName)
@@ -253,15 +265,16 @@ func OpenPrivateChat(c *gin.Context) {
 
 func GetGroupMembers(c *gin.Context) {
 	var (
-		req  cms_api_struct.GetGroupMembersRequest
+		req   cms_api_struct.GetGroupMembersRequest
 		reqPb pbGroup.GetGroupMembersCMSReq
-		resp   cms_api_struct.GetGroupMembersResponse
+		resp  cms_api_struct.GetGroupMembersResponse
 	)
 	if err := c.ShouldBindQuery(&req); err != nil {
 		log.NewError(reqPb.OperationID, utils.GetSelfFuncName(), "ShouldBindQuery failed ", err.Error())
 		openIMHttp.RespHttp200(c, constant.ErrArgs, nil)
 		return
 	}
+	log.NewInfo("", utils.GetSelfFuncName(), "req: ", req)
 	reqPb.Pagination = &commonPb.RequestPagination{
 		PageNumber: int32(req.PageNumber),
 		ShowNumber: int32(req.ShowNumber),
@@ -286,24 +299,25 @@ func GetGroupMembers(c *gin.Context) {
 			MemberPosition: int(groupMembers.RoleLevel),
 			MemberNickName: groupMembers.Nickname,
 			MemberId:       groupMembers.UserID,
-			JoinTime:      utils.UnixSecondToTime(groupMembers.JoinTime).String(),
+			JoinTime:       utils.UnixSecondToTime(int64(groupMembers.JoinTime)).String(),
 		})
 	}
+	log.NewInfo("", utils.GetSelfFuncName(), "req: ", resp)
 	openIMHttp.RespHttp200(c, constant.OK, resp)
 }
 
-
 func AddGroupMembers(c *gin.Context) {
 	var (
-		req cms_api_struct.RemoveGroupMembersRequest
-		resp cms_api_struct.RemoveGroupMembersResponse
+		req   cms_api_struct.RemoveGroupMembersRequest
+		resp  cms_api_struct.RemoveGroupMembersResponse
 		reqPb pbGroup.AddGroupMembersCMSReq
 	)
 	if err := c.BindJSON(&req); err != nil {
-		log.NewError(reqPb.OperationId, utils.GetSelfFuncName(),"BindJSON failed ", err.Error())
+		log.NewError(reqPb.OperationId, utils.GetSelfFuncName(), "BindJSON failed ", err.Error())
 		openIMHttp.RespHttp200(c, constant.ErrArgs, nil)
 		return
 	}
+	log.NewInfo("", utils.GetSelfFuncName(), "req: ", req)
 	reqPb.UserIds = req.Members
 	reqPb.GroupId = req.GroupId
 	etcdConn := getcdv3.GetConn(config.Config.Etcd.EtcdSchema, strings.Join(config.Config.Etcd.EtcdAddr, ","), config.Config.RpcRegisterName.OpenImGroupName)
@@ -316,20 +330,22 @@ func AddGroupMembers(c *gin.Context) {
 	}
 	resp.Success = respPb.Success
 	resp.Failed = respPb.Failed
+	log.NewInfo("", utils.GetSelfFuncName(), "resp: ", resp)
 	openIMHttp.RespHttp200(c, constant.OK, resp)
 }
 
 func RemoveGroupMembers(c *gin.Context) {
 	var (
-		req cms_api_struct.RemoveGroupMembersRequest
-		resp cms_api_struct.RemoveGroupMembersResponse
+		req   cms_api_struct.RemoveGroupMembersRequest
+		resp  cms_api_struct.RemoveGroupMembersResponse
 		reqPb pbGroup.RemoveGroupMembersCMSReq
 	)
 	if err := c.BindJSON(&req); err != nil {
-		log.NewError(reqPb.OperationID, utils.GetSelfFuncName(),"BindJSON failed ", err.Error())
+		log.NewError(reqPb.OperationID, utils.GetSelfFuncName(), "BindJSON failed ", err.Error())
 		openIMHttp.RespHttp200(c, constant.ErrArgs, nil)
 		return
 	}
+	log.NewInfo("", utils.GetSelfFuncName(), "req: ", req)
 	reqPb.UserIds = req.Members
 	reqPb.GroupId = req.GroupId
 	etcdConn := getcdv3.GetConn(config.Config.Etcd.EtcdSchema, strings.Join(config.Config.Etcd.EtcdAddr, ","), config.Config.RpcRegisterName.OpenImGroupName)
@@ -342,20 +358,22 @@ func RemoveGroupMembers(c *gin.Context) {
 	}
 	resp.Success = respPb.Success
 	resp.Failed = respPb.Failed
+	log.NewInfo("", utils.GetSelfFuncName(), "req: ", resp)
 	openIMHttp.RespHttp200(c, constant.OK, resp)
 }
 
 func DeleteGroup(c *gin.Context) {
 	var (
-		req cms_api_struct.DeleteGroupRequest
-		_ cms_api_struct.DeleteGroupResponse
+		req   cms_api_struct.DeleteGroupRequest
+		_     cms_api_struct.DeleteGroupResponse
 		reqPb pbGroup.DeleteGroupReq
 	)
 	if err := c.BindJSON(&req); err != nil {
-		log.NewError(reqPb.OperationID, utils.GetSelfFuncName(),"BindJSON failed ", err.Error())
+		log.NewError(reqPb.OperationID, utils.GetSelfFuncName(), "BindJSON failed ", err.Error())
 		openIMHttp.RespHttp200(c, constant.ErrArgs, nil)
 		return
 	}
+	log.NewInfo("", utils.GetSelfFuncName(), "req: ", req)
 	reqPb.GroupId = req.GroupId
 	etcdConn := getcdv3.GetConn(config.Config.Etcd.EtcdSchema, strings.Join(config.Config.Etcd.EtcdAddr, ","), config.Config.RpcRegisterName.OpenImGroupName)
 	client := pbGroup.NewGroupClient(etcdConn)
@@ -370,15 +388,16 @@ func DeleteGroup(c *gin.Context) {
 
 func SetGroupMaster(c *gin.Context) {
 	var (
-		req cms_api_struct.SetGroupMasterRequest
-		_ cms_api_struct.SetGroupMasterResponse
+		req   cms_api_struct.SetGroupMasterRequest
+		_     cms_api_struct.SetGroupMasterResponse
 		reqPb pbGroup.OperateUserRoleReq
 	)
 	if err := c.BindJSON(&req); err != nil {
-		log.NewError(reqPb.OperationID, utils.GetSelfFuncName(),"BindJSON failed ", err.Error())
+		log.NewError(reqPb.OperationID, utils.GetSelfFuncName(), "BindJSON failed ", err.Error())
 		openIMHttp.RespHttp200(c, constant.ErrArgs, nil)
 		return
 	}
+	log.NewInfo("", utils.GetSelfFuncName(), "req: ", req)
 	reqPb.GroupId = req.GroupId
 	reqPb.UserId = req.UserId
 	reqPb.RoleLevel = constant.GroupOwner
@@ -395,8 +414,8 @@ func SetGroupMaster(c *gin.Context) {
 
 func SetGroupOrdinaryUsers(c *gin.Context) {
 	var (
-		req cms_api_struct.SetGroupMemberRequest
-		_ cms_api_struct.AdminLoginResponse
+		req   cms_api_struct.SetGroupMemberRequest
+		_     cms_api_struct.AdminLoginResponse
 		reqPb pbGroup.OperateUserRoleReq
 	)
 	if err := c.BindJSON(&req); err != nil {
@@ -404,6 +423,7 @@ func SetGroupOrdinaryUsers(c *gin.Context) {
 		openIMHttp.RespHttp200(c, constant.ErrArgs, nil)
 		return
 	}
+	log.NewInfo("", utils.GetSelfFuncName(), "req: ", req)
 	reqPb.GroupId = req.GroupId
 	reqPb.UserId = req.UserId
 	reqPb.RoleLevel = constant.GroupOrdinaryUsers
@@ -420,10 +440,11 @@ func SetGroupOrdinaryUsers(c *gin.Context) {
 
 func AlterGroupInfo(c *gin.Context) {
 	var (
-		req cms_api_struct.AlterGroupInfoRequest
-		_ cms_api_struct.SetGroupMasterResponse
+		req   cms_api_struct.AlterGroupInfoRequest
+		_     cms_api_struct.SetGroupMasterResponse
 		reqPb pbGroup.SetGroupInfoReq
 	)
+	log.NewInfo("", utils.GetSelfFuncName(), "req: ", req)
 	if err := c.BindJSON(&req); err != nil {
 		log.NewError(reqPb.OperationID, utils.GetSelfFuncName(), "BindJSON failed ", err.Error())
 		openIMHttp.RespHttp200(c, constant.ErrArgs, nil)
@@ -431,12 +452,12 @@ func AlterGroupInfo(c *gin.Context) {
 	}
 	reqPb.OpUserID = c.MustGet("userID").(string)
 	reqPb.GroupInfo = &commonPb.GroupInfo{
-		GroupID:       req.GroupID,
-		GroupName:     req.GroupName,
-		Introduction:  req.Introduction,
-		Notification:  req.Notification,
-		FaceURL:       req.ProfilePhoto,
-		GroupType:     int32(req.GroupType),
+		GroupID:      req.GroupID,
+		GroupName:    req.GroupName,
+		Introduction: req.Introduction,
+		Notification: req.Notification,
+		FaceURL:      req.ProfilePhoto,
+		GroupType:    int32(req.GroupType),
 	}
 	etcdConn := getcdv3.GetConn(config.Config.Etcd.EtcdSchema, strings.Join(config.Config.Etcd.EtcdAddr, ","), config.Config.RpcRegisterName.OpenImGroupName)
 	client := pbGroup.NewGroupClient(etcdConn)
