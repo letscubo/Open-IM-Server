@@ -12,7 +12,7 @@ k8sMod: false #开启k8s模式 使用pod里面环境变量请求services调用�
 mysql:
   dbMysqlAddress: [ 127.0.0.1:3306 ] #mysql地址 目前仅支持单机，默认即可
   dbMysqlUserName: root #mysql用户名，建议修改
-  dbMysqlPassword: 123456 # mysql密码，建议修改
+  dbMysqlPassword: anve # mysql密码，建议修改
   dbMysqlDatabaseName: openIM_v2 #默认即可
   dbTableName: eMsg #默认即可
   dbMsgTableNum: 1
@@ -21,12 +21,7 @@ mysql:
   dbMaxLifeTime: 120
 
 mongo:
-<<<<<<< HEAD
   dbAddress: [ 127.0.0.1:27017 ] #redis地址 目前仅支持单机，默认即可
-=======
-  dbUri: ""#当dbUri值不为空则直接使用该值
-  dbAddress: [ 127.0.0.1:37017 ] #mongo地址 目前仅支持单机，默认即可
->>>>>>> ab047944b61d135829f43bd61d23b9d0d80e6e72
   dbDirect: false
   dbTimeout: 60
   dbDatabase: openIM  #mongo db 默认即可
