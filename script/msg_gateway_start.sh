@@ -7,6 +7,7 @@ ulimit -n 200000
 
 list1=$(cat $config_path | grep openImMessageGatewayPort | awk -F '[:]' '{print $NF}')
 list2=$(cat $config_path | grep openImWsPort | awk -F '[:]' '{print $NF}')
+echo $list1
 list_to_string $list1
 rpc_ports=($ports_array)
 list_to_string $list2
