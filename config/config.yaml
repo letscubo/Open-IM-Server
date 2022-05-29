@@ -10,7 +10,7 @@ etcd:
 k8sMod: false #开启k8s模式 使用pod里面环境变量请求services调用服务 而并非etcd
 
 mysql:
-  dbMysqlAddress: [ 127.0.0.1:13306 ] #mysql地址 目前仅支持单机，默认即可
+  dbMysqlAddress: [ 127.0.0.1:3306 ] #mysql地址 目前仅支持单机，默认即可
   dbMysqlUserName: root #mysql用户名，建议修改
   dbMysqlPassword: anve # mysql密码，建议修改
   dbMysqlDatabaseName: openIM_v2 #默认即可
