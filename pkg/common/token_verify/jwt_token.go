@@ -6,9 +6,10 @@ import (
 	commonDB "Open_IM/pkg/common/db"
 	"Open_IM/pkg/common/log"
 	"Open_IM/pkg/utils"
+	"time"
+
 	"github.com/garyburd/redigo/redis"
 	"github.com/golang-jwt/jwt/v4"
-	"time"
 )
 
 //var (
@@ -233,6 +234,7 @@ func WsVerifyToken(token, uid string, platformID string, operationID string) (bo
 	if claims.UID != uid {
 		return false, utils.Wrap(&constant.ErrTokenUnknown, "uid is not same to token uid"), "uid is not same to token uid"
 	}
+	log.NewDebug("", claims.Platform, platformID, constant.PlatformIDToName(utils.StringToInt32(platformID)))
 	if claims.Platform != constant.PlatformIDToName(utils.StringToInt32(platformID)) {
 		return false, utils.Wrap(&constant.ErrTokenUnknown, "platform is not same to token platform"), "platform is not same to token platform"
 	}
