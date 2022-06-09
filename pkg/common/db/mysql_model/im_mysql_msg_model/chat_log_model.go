@@ -11,20 +11,22 @@ import (
 	"Open_IM/pkg/common/db"
 	"Open_IM/pkg/common/log"
 	pbMsg "Open_IM/pkg/proto/chat"
-	"Open_IM/pkg/proto/sdk_ws"
+	server_api_params "Open_IM/pkg/proto/sdk_ws"
 	"Open_IM/pkg/utils"
+
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 	"github.com/jinzhu/copier"
 )
-func ListMsgByUids(msg pbMsg.MsgDataToMQ){} error {
-	dbConn, err := db.DB.MysqlDB.DefaultGormDB()
-	if err != nil {
-		return err
-	}
-	log.NewDebug("ListMsgByUids", "this is ", chatLog)
-	return dbConn.Table("chat_logs").Create(chatLog).Error
-}
+
+// func ListMsgByUids(msg pbMsg.MsgDataToMQ){} error {
+// 	dbConn, err := db.DB.MysqlDB.DefaultGormDB()
+// 	if err != nil {
+// 		return err
+// 	}
+// 	log.NewDebug("ListMsgByUids", "this is ", chatLog)
+// 	return dbConn.Table("chat_logs").Create(chatLog).Error
+// }
 func InsertMessageToChatLog(msg pbMsg.MsgDataToMQ) error {
 	dbConn, err := db.DB.MysqlDB.DefaultGormDB()
 	if err != nil {
