@@ -1,0 +1,6 @@
+make --dry-run --always-make --keep-going --print-directory
+make: Entering directory `/Users/ss/arthas/Open-IM-Server'
+make: Leaving directory `/Users/ss/arthas/Open-IM-Server'
+ 
+make: *** No targets specified and no makefile found.  Stop.
+
